@@ -23,7 +23,7 @@ services:
       - 3456:3456
     volumes:
       - /etc/localtime:/etc/localtime:ro # for log timestamps
-      - ./src:/plugins/ntfy
+      - ./src/main.go:/plugins/ntfy/main.go:ro
       - ./_vikunja_data/files:/app/vikunja/files
       - ./_vikunja_data/db:/db
 

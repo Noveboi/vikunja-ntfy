@@ -1,1 +1,7 @@
 _vikunja_data
+
+# go.mod and go.sum are used for editor IntelliSense and do not serve a functional purpose in production.
+# This therefore makes it optional for anyone to create a Go module for the plugin.
+# Creating your own module is required if you wish to run the unit tests
+go.mod
+go.sum

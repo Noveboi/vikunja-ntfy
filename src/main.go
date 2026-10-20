@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net/http" // for ntfy.sh API calls
 	"net/url"
 	"strings"
+	"time"
 
 	"code.vikunja.io/api/pkg/events"
 	"code.vikunja.io/api/pkg/log"
@@ -78,12 +80,30 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 	// For now (v1.0.0), the ntfy topic is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
 		title: "Overdue Tasks!",
-		message: fmt.Sprintf("%s has %d overdue tasks", event.User.Username, len(tasks)),
+		message: getNotificationMessage(tasks, time.Now()),
 		priority: NtfyPriorityHigh,
 		tags: []string{"rotating_light"},
 	}
 
 	return sendNtfyMessage(&ntfyMsg)
+}
+
+func getNotificationMessage(tasks []*models.Task, now time.Time) string {
+	taskLen := len(tasks)
+
+	if taskLen == 1 {
+		task := tasks[0]
+		overdueDays := int(math.Ceil(now.Sub(task.DueDate).Hours() / 24))
+
+		if overdueDays == 1 {
+			return fmt.Sprintf("'%s' is 1 day overdue", task.Title)
+		}
+
+		return fmt.Sprintf("'%s' is %d days overdue", task.Title, overdueDays)
+	}
+
+	// 2026-10-20: Could consider richer descriptions for multiple tasks as well.
+	return fmt.Sprintf("You have %d overdue tasks", len(tasks))
 }
 
 func sendNtfyMessage(m *NtfyMessage) error {
