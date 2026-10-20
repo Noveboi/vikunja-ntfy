@@ -1,0 +1,44 @@
+name: vikunja-ntfy
+
+services:
+  vikunja-tester:
+    image: vikunja/vikunja:2.7.0
+    container_name: vikunja-tester
+    restart: unless-stopped
+    environment:
+      VIKUNJA_SERVICE_SECRET: 01052fea2ed327cdb858d18387f09be1ea3f61804443e862dac22070cd6d400c
+      VIKUNJA_SERVICE_PUBLICURL: http://127.0.0.1:3456
+      VIKUNJA_DATABASE_PATH: /db/vikunja.db
+      VIKUNJA_PLUGINS_ENABLED: true
+      VIKUNJA_PLUGINS_DIR: /plugins
+      VIKUNJA_PLUGINS_LOADER: yaegi
+      VIKUNJA_LOG_LEVEL: DEBUG
+      VIKUNJA_WEBHOOKS_ENABLED: true
+
+      # custom variables for the actual ntfy plugin
+      VIKUNJA_PLUGINS_NTFY_URL: http://ntfy-tester:80
+      VIKUNJA_PLUGINS_NTFY_TOPIC: vikunja
+      VIKUNJA_PLUGINS_NTFY_LOGURLANDTOPIC: true
+    ports:
+      - 3456:3456
+    volumes:
+      - /etc/localtime:/etc/localtime:ro # for log timestamps
+      - ./src:/plugins/ntfy
+      - ./_vikunja_data/files:/app/vikunja/files
+      - ./_vikunja_data/db:/db
+
+  ntfy-tester:
+    image: binwiederhier/ntfy:v2.32.0
+    container_name: ntfy-tester
+    restart: unless-stopped
+    command:
+      - serve
+    volumes:
+      - test-ntfy-cache:/var/cache/ntfy
+      - test-ntfy-etc:/etc/ntfy
+    ports:
+      - 3457:80
+
+volumes:
+  test-ntfy-cache:
+  test-ntfy-etc:
