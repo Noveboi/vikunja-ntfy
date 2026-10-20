@@ -11,5 +11,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ## Added
 - [`src/main.go`](src/main.go): the plugin's entire codebase.
 - A sample [`compose.yaml`](compose.yaml) file containing a `Vikunja` and `ntfy` service. To be used in testing the plugin locally
-- A [`permissions.sh`] file that sets the appropriate permissions recursively for the `_vikunja_data` folder
+- A [`permissions.sh`](permissions.sh) file that sets the appropriate permissions recursively for the `_vikunja_data` folder
 - minimal [`.gitignore`](.gitignore) that does not version the `_vikunja_data` folder used by the sample `compose.yaml` file.
