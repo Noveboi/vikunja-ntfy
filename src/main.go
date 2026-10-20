@@ -25,7 +25,7 @@ func (p *NtfyPlugin) Name() string {
 }
 
 func (p *NtfyPlugin) Version() string {
-	return "1.0.0"
+	return "1.1.0"
 }
 
 func (p *NtfyPlugin) Init() error {
