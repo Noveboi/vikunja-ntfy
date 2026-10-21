@@ -21,6 +21,8 @@ import (
 /*
  * 1. Types
  */
+const CENSOR = "<REDACTED>"
+const CONF_PREFIX = "plugins.ntfy"
 
 // Vikunja plugin interface, adhering to the contract of [plugins.Plugin] from "code.vikunja.io/api/pkg/plugins"
 type NtfyPlugin struct{}
@@ -30,6 +32,7 @@ type NtfyPluginConfig struct {
 	url string
 	topic string
 	shouldLog bool
+	customOverdueTitle string
 }
 
 // Enum-like type modelling the various message priorities of ntfy.sh.
@@ -78,7 +81,11 @@ func (p *NtfyPlugin) Init() error {
 		log.Infof("[ntfy-plugin] Using base URL: %s", config.url)
 		log.Infof("[ntfy-plugin] Using topic: %s", config.topic)
 	} else {
-		log.Infof("[ntfy-plugin] URL/Topic logging is turned off. ntfy URL and/or Topics will be shown as <REDACTED>")
+		log.Infof("[ntfy-plugin] URL/Topic logging is turned off. ntfy URL and/or Topics will be shown as %s", CENSOR)
+	}
+
+	if config.customOverdueTitle != "" {
+		log.Debugf("[ntfy-plugin] Using custom overdue task notification title: %q", config.customOverdueTitle)
 	}
 
 	return nil
@@ -120,13 +127,21 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 
 	// For now (v1.0.0), the ntfy title is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
-		title: "Overdue Tasks!",
+		title: getCustomOrDefault(c.customOverdueTitle, "Overdue Tasks!"),
 		content: getMessageContent(tasks, time.Now()),
 		priority: NtfyPriorityHigh,
 		tags: []string{"rotating_light"},
 	}
 
 	return sendNtfyMessage(&ntfyMsg, c)
+}
+
+func getCustomOrDefault(custom string, def string) string {
+	if custom == "" {
+		return def
+	}
+
+	return custom
 }
 
 // Contact the ntfy.sh API and try to publish the notification message
@@ -172,15 +187,22 @@ func buildNtfyRequest(URL string, m *NtfyMessage) (*http.Request, error) {
 
 // Wrapper around [viper.GetString] that trims leading and trailing whitespace
 func getAndSanitizeString(key string) string {
-	return strings.TrimSpace(viper.GetString(key))
+	joined := CONF_PREFIX + "." + key
+	return strings.TrimSpace(viper.GetString(joined))
+}
+
+func getBool(key string) bool {
+	joined := CONF_PREFIX + "." + key
+	return viper.GetBool(joined)
 }
 
 // Retrieve the required and optional configuration for this plugin.
 // Any missing required configuration will return an error
 func getConfig() (*NtfyPluginConfig, error) {
-	url := getAndSanitizeString("plugins.ntfy.url")
-	topic := getAndSanitizeString("plugins.ntfy.topic")
-	shouldLog := viper.GetBool("plugins.ntfy.logUrlAndTopic")
+	url := getAndSanitizeString("url")
+	topic := getAndSanitizeString("topic")
+	customOverdueTitle := getAndSanitizeString("overdue_title")
+	shouldLog := getBool("log_sensitive")
 
 	if url == "" {
 		return nil, errors.New("ntfy URL is not defined")
@@ -190,7 +212,12 @@ func getConfig() (*NtfyPluginConfig, error) {
 		return nil, errors.New("ntfy Topic is not defined")
 	}
 
-	return &NtfyPluginConfig{url, topic, shouldLog}, nil
+	return &NtfyPluginConfig{
+		url: url,
+		topic: topic,
+		shouldLog: shouldLog,
+		customOverdueTitle: customOverdueTitle,
+	}, nil
 }
 
 // Joins the URL with the Topic to form a valid ntfy.sh URL.
@@ -246,5 +273,5 @@ func formatSensitiveData(c *NtfyPluginConfig, data string) string {
 		return data
 	}
 
-	return "<REDACTED>"
+	return CENSOR
 }
