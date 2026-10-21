@@ -22,7 +22,7 @@ import (
  * 1. Types
  */
 
-// Vikunja plugin interface, adhering to the contract of `Plugin` from "code.vikunja.io/api/pkg/plugins"
+// Vikunja plugin interface, adhering to the contract of [plugins.Plugin] from "code.vikunja.io/api/pkg/plugins"
 type NtfyPlugin struct{}
 
 // Custom plugin configuration
@@ -51,7 +51,7 @@ type NtfyMessage struct {
 	tags []string // https://docs.ntfy.sh/emojis/
 }
 
-// Event listener for Vikunja's `TasksOverdueEvent`
+// Event listener for Vikunja's [models.TasksOverdueEvent]
 type TasksOverdueListener struct{}
 
 /*
@@ -116,7 +116,7 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 	// For now (v1.0.0), the ntfy topic is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
 		title: "Overdue Tasks!",
-		content: getNotificationMessage(tasks, time.Now()),
+		content: getMessageContent(tasks, time.Now()),
 		priority: NtfyPriorityHigh,
 		tags: []string{"rotating_light"},
 	}
@@ -124,59 +124,23 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 	return sendNtfyMessage(&ntfyMsg)
 }
 
-func getNotificationMessage(tasks []*models.Task, now time.Time) string {
-	taskLen := len(tasks)
-
-	if taskLen == 1 {
-		task := tasks[0]
-		overdueDays := int(math.Ceil(now.Sub(task.DueDate).Hours() / 24))
-
-		if overdueDays == 1 {
-			return fmt.Sprintf("'%s' is 1 day overdue", task.Title)
-		}
-
-		return fmt.Sprintf("'%s' is %d days overdue", task.Title, overdueDays)
-	}
-
-	// 2026-10-20: Could consider richer descriptions for multiple tasks as well.
-	return fmt.Sprintf("You have %d overdue tasks", len(tasks))
-}
-
+// Contact the ntfy.sh API and try to publish the notification message
 func sendNtfyMessage(m *NtfyMessage) error {
-	config, err := getConfig()
+	c, err := getConfig()
 	if err != nil {
 		return err
 	}
 
-	// Parse the raw URL string into a URL struct to validate the structure and ensure it is a proper URL
-	ntfyUrl, err := url.Parse(config.url)
+	ntfyURL, err := constructNtfyUrl(c.url, c.topic)
 	if err != nil {
 		return err
 	}
 
-	if ntfyUrl.Host == "" || (ntfyUrl.Scheme != "http" && ntfyUrl.Scheme != "https") {
-		return errors.New("ntfy URL must be an absolute HTTP/HTTPS URL")
-	}
+	log.Debugf("[ntfy-plugin] Sending message to %s", formatSensitiveData(c, ntfyURL))
 
-	ntfyUrl = ntfyUrl.JoinPath(config.topic)
-
-	ntfyUrlLog := "<REDACTED>"
-	if config.shouldLog {
-		ntfyUrlLog = ntfyUrl.String()
-	}
-
-	log.Debugf("[ntfy-plugin] Sending message to %s", ntfyUrlLog)
-
-	reqBody := strings.NewReader(m.content)
-	req, err := http.NewRequest("POST", ntfyUrl.String(), reqBody)
+	req, err := buildRequest(ntfyURL, m)
 	if err != nil {
 		return err
-	}
-
-	req.Header.Set("Title", m.title)
-	req.Header.Set("Priority", string(m.priority))
-	if len(m.tags) > 0 {
-		req.Header.Set("Tags", strings.Join(m.tags, ","))
 	}
 
 	resp, err := http.DefaultClient.Do(req)
@@ -186,10 +150,28 @@ func sendNtfyMessage(m *NtfyMessage) error {
 
 	defer resp.Body.Close()
 
-	log.Debugf("[ntfy-plugin] Got response %s from %s", resp.Status, ntfyUrlLog)
+	log.Debugf("[ntfy-plugin] Got response %q from %s", resp.Status, ntfyURL)
 	return nil
 }
 
+
+func buildRequest(URL string, m *NtfyMessage) (*http.Request, error) {
+	req, err := http.NewRequest("POST", URL, strings.NewReader(m.content))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Title", m.title)
+	req.Header.Set("Priority", string(m.priority))
+
+	if len(m.tags) > 0 {
+		req.Header.Set("Tags", strings.Join(m.tags, ","))
+	}
+
+	return req, nil
+}
+
+// Wrapper around [viper.GetString] that trims leading and trailing whitespace
 func getAndSanitizeString(key string) string {
 	return strings.TrimSpace(viper.GetString(key))
 }
@@ -210,4 +192,60 @@ func getConfig() (*NtfyPluginConfig, error) {
 	}
 
 	return &NtfyPluginConfig{url, topic, shouldLog}, nil
+}
+
+// Joins the URL with the Topic to form a valid ntfy.sh URL.
+func constructNtfyUrl(rawURL string, topic string) (string, error) {
+	if strings.TrimSpace(topic) == "" {
+		return "", errors.New("Empty topic is not allowed")
+	}
+
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+
+	scheme := parsedURL.Scheme
+	host := parsedURL.Host
+
+	// allow URLs of the form
+	// - http://<host>
+	// - https://<host>
+	if host == "" {
+		return "", errors.New("Invalid URL: No host")
+	}
+
+	if scheme != "https" && scheme != "http" {
+		return "", errors.New("Invalid URL: Only HTTP(S) protocol is supported")
+	}
+
+	return parsedURL.JoinPath(topic).String(), nil
+}
+
+// Creates the content for the ntfy message.
+func getMessageContent(tasks []*models.Task, now time.Time) string {
+	taskLen := len(tasks)
+
+	if taskLen == 1 {
+		task := tasks[0]
+		overdueDays := int(math.Ceil(now.Sub(task.DueDate).Hours() / 24))
+
+		if overdueDays == 1 {
+			return fmt.Sprintf("'%s' is 1 day overdue", task.Title)
+		}
+
+		return fmt.Sprintf("'%s' is %d days overdue", task.Title, overdueDays)
+	}
+
+	// 2026-10-20: Could consider richer descriptions for multiple tasks as well.
+	return fmt.Sprintf("You have %d overdue tasks", len(tasks))
+}
+
+// Censors the `data` parameter if sensitive data logging is turned off in the configuration
+func formatSensitiveData(c *NtfyPluginConfig, data string) string {
+	if c.shouldLog {
+		return data
+	}
+
+	return "<REDACTED>"
 }
