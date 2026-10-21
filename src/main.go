@@ -18,7 +18,45 @@ import (
 	"github.com/spf13/viper"
 )
 
+/*
+ * 1. Types
+ */
+
+// Vikunja plugin interface, adhering to the contract of `Plugin` from "code.vikunja.io/api/pkg/plugins"
 type NtfyPlugin struct{}
+
+// Custom plugin configuration
+type NtfyPluginConfig struct {
+	url string
+	topic string
+	shouldLog bool
+}
+
+// Enum-like type modelling the various message priorities of ntfy.sh.
+// For more information see https://docs.ntfy.sh/publish/#message-priority
+type NtfyPriority string
+const (
+	NtfyPriorityMax NtfyPriority = "max"
+	NtfyPriorityHigh NtfyPriority = "high"
+	NtfyPriorityDefault NtfyPriority = "default"
+	NtfyPriorityLow NtfyPriority = "low"
+	NtfyPriorityMin NtfyPriority = "min"
+)
+
+// The structure of a ntfy.sh message
+type NtfyMessage struct {
+	title string
+	content string
+	priority NtfyPriority
+	tags []string // https://docs.ntfy.sh/emojis/
+}
+
+// Event listener for Vikunja's `TasksOverdueEvent`
+type TasksOverdueListener struct{}
+
+/*
+ * 2. Plugin Setup
+ */
 
 func (p *NtfyPlugin) Name() string {
 	return "ntfy-plugin"
@@ -55,9 +93,8 @@ var singleton = &NtfyPlugin{}
 func NewPlugin() plugins.Plugin { return singleton }
 
 /*
- * Events!
+ * 3. Plugin Functionality
  */
-type TasksOverdueListener struct{}
 
 func (l *TasksOverdueListener) Name() string { return "TasksOverdueListener" }
 func (l *TasksOverdueListener) Handle(msg *message.Message) error {
@@ -80,7 +117,7 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 	// For now (v1.0.0), the ntfy topic is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
 		title: "Overdue Tasks!",
-		message: getNotificationMessage(tasks, time.Now()),
+		content: getNotificationMessage(tasks, time.Now()),
 		priority: NtfyPriorityHigh,
 		tags: []string{"rotating_light"},
 	}
@@ -131,7 +168,7 @@ func sendNtfyMessage(m *NtfyMessage) error {
 
 	log.Debugf("[ntfy-plugin] Sending message to %s", ntfyUrlLog)
 
-	reqBody := strings.NewReader(m.message)
+	reqBody := strings.NewReader(m.content)
 	req, err := http.NewRequest("POST", ntfyUrl.String(), reqBody)
 	if err != nil {
 		return err
@@ -174,27 +211,4 @@ func getConfig() (*NtfyPluginConfig, error) {
 	}
 
 	return &NtfyPluginConfig{url, topic, shouldLog}, nil
-}
-
-type NtfyPluginConfig struct {
-	url string
-	topic string
-	shouldLog bool
-}
-
-type NtfyPriority string
-// https://docs.ntfy.sh/publish/#message-priority
-const (
-	NtfyPriorityMax NtfyPriority = "max"
-	NtfyPriorityHigh NtfyPriority = "high"
-	NtfyPriorityDefault NtfyPriority = "default"
-	NtfyPriorityLow NtfyPriority = "low"
-	NtfyPriorityMin NtfyPriority = "min"
-)
-
-type NtfyMessage struct {
-	title string
-	message string
-	priority NtfyPriority
-	tags []string // https://docs.ntfy.sh/emojis/
 }
