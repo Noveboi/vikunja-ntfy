@@ -66,7 +66,7 @@ func (p *NtfyPlugin) Name() string {
 }
 
 func (p *NtfyPlugin) Version() string {
-	return "1.1.0"
+	return "1.2.0"
 }
 
 func (p *NtfyPlugin) Init() error {
@@ -125,7 +125,6 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 
 	log.Debugf("[ntfy-plugin] Processing %d overdue tasks for u:%d'", len(tasks), event.User.ID)
 
-	// For now (v1.0.0), the ntfy title is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
 		title: getCustomOrDefault(c.customOverdueTitle, "Overdue Tasks!"),
 		content: getMessageContent(tasks, time.Now()),
