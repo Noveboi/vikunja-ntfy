@@ -18,11 +18,12 @@ services:
       # custom variables for the actual ntfy plugin
       VIKUNJA_PLUGINS_NTFY_URL: http://ntfy-tester:80
       VIKUNJA_PLUGINS_NTFY_TOPIC: vikunja
-      VIKUNJA_PLUGINS_NTFY_LOGURLANDTOPIC: true
+      VIKUNJA_PLUGINS_NTFY_LOG_SENSITIVE: true
+      VIKUNJA_PLUGINS_NTFY_OVERDUE_TITLE: You have overdue tasks
     ports:
       - 3456:3456
     volumes:
-      - /etc/localtime:/etc/localtime:ro # for log timestamps
+      - /etc/localtime:/etc/localtime:ro # for locally accurate log timestamps
       - ./src/main.go:/plugins/ntfy/main.go:ro
       - ./_vikunja_data/files:/app/vikunja/files
       - ./_vikunja_data/db:/db

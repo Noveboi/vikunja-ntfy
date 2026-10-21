@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 ## [1.2.0] - 2026-10-21
 
+### Added
+- Configuration to allow user to customize the title of the notification (`plugins.ntfy.overdue_title`)
+
+### Changed
+- Configuration variable `plugins.ntfy.logUrlAndTopic` to `plugins.ntfy.log_sensitive`
+
+### Tests
+- Extensive unit tests for `buildNtfyUrl` function
+- Extensive unit tests for `buildNtfyRequest` function
+
+### Refactoring
+- Many new pure functions have been added to separate responsibilities and increase testability
+
 ## [1.1.0] - 2026-10-20
 
 ### Added
