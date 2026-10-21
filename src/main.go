@@ -104,8 +104,6 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 		return err
 	}
 
-	log.Debugf("[ntfy-plugin] Received event: %v", event)
-
 	tasks := event.Tasks
 
 	log.Debugf("[ntfy-plugin] Processing %d overdue tasks for %d'", len(tasks), event.User.ID)
