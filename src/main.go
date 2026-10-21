@@ -111,7 +111,7 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 		return nil
 	}
 
-	log.Debugf("[ntfy-plugin] Processing %d overdue tasks for %d'", len(tasks), event.User.ID)
+	log.Debugf("[ntfy-plugin] Processing %d overdue tasks for u:%d'", len(tasks), event.User.ID)
 
 	// For now (v1.0.0), the ntfy topic is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
