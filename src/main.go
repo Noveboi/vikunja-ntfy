@@ -104,6 +104,11 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 		return err
 	}
 
+	c, err := getConfig()
+	if err != nil {
+		return err
+	}
+
 	tasks := event.Tasks
 
 	if len(tasks) == 0 {
@@ -113,7 +118,7 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 
 	log.Debugf("[ntfy-plugin] Processing %d overdue tasks for u:%d'", len(tasks), event.User.ID)
 
-	// For now (v1.0.0), the ntfy topic is not user-specified. I'll perhaps add support for that in the future
+	// For now (v1.0.0), the ntfy title is not user-specified. I'll perhaps add support for that in the future
 	ntfyMsg := NtfyMessage{
 		title: "Overdue Tasks!",
 		content: getMessageContent(tasks, time.Now()),
@@ -121,24 +126,17 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 		tags: []string{"rotating_light"},
 	}
 
-	return sendNtfyMessage(&ntfyMsg)
+	return sendNtfyMessage(&ntfyMsg, c)
 }
 
 // Contact the ntfy.sh API and try to publish the notification message
-func sendNtfyMessage(m *NtfyMessage) error {
-	c, err := getConfig()
+func sendNtfyMessage(m *NtfyMessage, c *NtfyPluginConfig) error {
+	ntfyURL, err := buildNtfyUrl(c.url, c.topic)
 	if err != nil {
 		return err
 	}
 
-	ntfyURL, err := constructNtfyUrl(c.url, c.topic)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("[ntfy-plugin] Sending message to %s", formatSensitiveData(c, ntfyURL))
-
-	req, err := buildRequest(ntfyURL, m)
+	req, err := buildNtfyRequest(ntfyURL, m)
 	if err != nil {
 		return err
 	}
@@ -150,12 +148,13 @@ func sendNtfyMessage(m *NtfyMessage) error {
 
 	defer resp.Body.Close()
 
-	log.Debugf("[ntfy-plugin] Got response %q from %s", resp.Status, ntfyURL)
+	log.Debugf("[ntfy-plugin] Got response %q from %s", resp.Status, formatSensitiveData(c, ntfyURL))
 	return nil
 }
 
-
-func buildRequest(URL string, m *NtfyMessage) (*http.Request, error) {
+// Constructs the HTTP POST request for ntfy.sh to publish a notification.
+// The URL is considered to contain the base ntfy URL as well as the topic.
+func buildNtfyRequest(URL string, m *NtfyMessage) (*http.Request, error) {
 	req, err := http.NewRequest("POST", URL, strings.NewReader(m.content))
 	if err != nil {
 		return nil, err
@@ -177,7 +176,7 @@ func getAndSanitizeString(key string) string {
 }
 
 // Retrieve the required and optional configuration for this plugin.
-// Any missing required configuration will trigger an error
+// Any missing required configuration will return an error
 func getConfig() (*NtfyPluginConfig, error) {
 	url := getAndSanitizeString("plugins.ntfy.url")
 	topic := getAndSanitizeString("plugins.ntfy.topic")
@@ -195,7 +194,7 @@ func getConfig() (*NtfyPluginConfig, error) {
 }
 
 // Joins the URL with the Topic to form a valid ntfy.sh URL.
-func constructNtfyUrl(rawURL string, topic string) (string, error) {
+func buildNtfyUrl(rawURL string, topic string) (string, error) {
 	if strings.TrimSpace(topic) == "" {
 		return "", errors.New("Empty topic is not allowed")
 	}
