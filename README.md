@@ -11,7 +11,7 @@ This is a personal project that I use for my self-hosted setup and mainly acts a
 
 ## Usage
 
-To use the plugin in your Vikunja instance, you have to put the `main.go` file inside your instance's "plugins" directory. Depending on your installation method (bare-metal, Docker, etc...) the intermediate steps might differ. Read the [Vikunja plugin documentation](https://vikunja.io/docs/plugins/#installation-and-configuration) for details. If your Vikunja instance is a Docker container, you can refer to the [sample `compose.yaml` file](compose.yaml) to see how you could set up the plugin.
+To use the plugin in your Vikunja instance, you have to put the [`main.go`](src/main.go) file inside your instance's "plugins" directory. Depending on your installation method (bare-metal, Docker, etc...) the intermediate steps might differ. Read the [Vikunja plugin documentation](https://vikunja.io/docs/plugins/#installation-and-configuration) for details. If your Vikunja instance is a Docker container, you can refer to the [sample `compose.yaml` file](compose.yaml) to see how you could set up the plugin.
 
 Use **yaegi** as the loader!
 
