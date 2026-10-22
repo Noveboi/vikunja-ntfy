@@ -56,6 +56,12 @@ type NtfyMessage struct {
 
 // Event listener for Vikunja's [models.TasksOverdueEvent]
 type TasksOverdueListener struct{}
+// Event listener for Vikunja's [models.TaskReminderFiredEvent]
+type TaskReminderListener struct{}
+
+type NamedEvent interface {
+	Name() string
+}
 
 /*
  * 2. Plugin Setup
@@ -66,16 +72,17 @@ func (p *NtfyPlugin) Name() string {
 }
 
 func (p *NtfyPlugin) Version() string {
-	return "1.2.0"
+	return "1.3.0"
 }
 
 func (p *NtfyPlugin) Init() error {
-	events.RegisterListener((&models.TasksOverdueEvent{}).Name(), &TasksOverdueListener{})
-
 	config, err := getConfig()
 	if err != nil {
 		return err
 	}
+
+	tryRegisterListener(&models.TasksOverdueEvent{}, &TasksOverdueListener{})
+	tryRegisterListener(&models.TaskReminderFiredEvent{}, &TaskReminderListener{})
 
 	if config.shouldLog {
 		log.Infof("[ntfy-plugin] Using base URL: %s", config.url)
@@ -103,6 +110,33 @@ func NewPlugin() plugins.Plugin { return singleton }
  * 3. Plugin Functionality
  */
 
+// Listener: Reminders
+func (l *TaskReminderListener) Name() string { return "TaskReminderListener" }
+func (l *TaskReminderListener) Handle(msg *message.Message) error {
+	var event models.TaskReminderFiredEvent
+
+	if err := json.Unmarshal(msg.Payload, &event); err != nil {
+		return err
+	}
+
+	c, err := getConfig()
+	if err != nil {
+		return err
+	}
+
+	log.Debugf("Processing reminder for u:%d", event.User.ID)
+
+	ntfyMsg := NtfyMessage{
+		title: "Reminder",
+		content: event.Task.Title,
+		priority: NtfyPriorityDefault,
+		tags: []string{"bulb"},
+	}
+
+	return sendNtfyMessage(&ntfyMsg, c)
+}
+
+// Listener: Overdue Tasks
 func (l *TasksOverdueListener) Name() string { return "TasksOverdueListener" }
 func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 	var event models.TasksOverdueEvent
@@ -127,7 +161,7 @@ func (l *TasksOverdueListener) Handle(msg *message.Message) error {
 
 	ntfyMsg := NtfyMessage{
 		title: getCustomOrDefault(c.customOverdueTitle, "Overdue Tasks!"),
-		content: getMessageContent(tasks, time.Now()),
+		content: getOverdueMessageContent(tasks, time.Now()),
 		priority: NtfyPriorityHigh,
 		tags: []string{"rotating_light"},
 	}
@@ -248,7 +282,7 @@ func buildNtfyUrl(rawURL string, topic string) (string, error) {
 }
 
 // Creates the content for the ntfy message.
-func getMessageContent(tasks []*models.Task, now time.Time) string {
+func getOverdueMessageContent(tasks []*models.Task, now time.Time) string {
 	taskLen := len(tasks)
 
 	if taskLen == 1 {
@@ -273,4 +307,19 @@ func formatSensitiveData(c *NtfyPluginConfig, data string) string {
 	}
 
 	return CENSOR
+}
+
+// Registers the `listener` for the `event`
+func tryRegisterListener(event NamedEvent, listener events.Listener) {
+	configName := CONF_PREFIX + "." + event.Name() + ".disable"
+
+	isDisabled := viper.GetBool(configName)
+
+	if isDisabled {
+		log.Infof("[ntfy-plugin] Listener %s disabled", listener.Name())
+		return
+	}
+
+	events.RegisterListener(event.Name(), listener)
+	log.Debugf("[ntfy-plugin] Listener %s registered", listener.Name())
 }

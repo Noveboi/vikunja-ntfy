@@ -5,6 +5,7 @@ services:
     image: vikunja/vikunja:2.7.0
     container_name: vikunja-tester
     restart: unless-stopped
+    env_file: .env
     environment:
       VIKUNJA_SERVICE_SECRET: 01052fea2ed327cdb858d18387f09be1ea3f61804443e862dac22070cd6d400c
       VIKUNJA_SERVICE_PUBLICURL: http://127.0.0.1:3456

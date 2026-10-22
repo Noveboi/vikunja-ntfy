@@ -7,6 +7,7 @@ This is a personal project that I use for my self-hosted setup and mainly acts a
 ## Features
 
 - Publish notifications when one or more tasks are overdue
+- Publish notifications for task reminders
 
 ## Usage
 

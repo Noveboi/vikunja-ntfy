@@ -1,4 +1,5 @@
 _vikunja_data
+.env
 
 # go.mod and go.sum are used for editor IntelliSense and do not serve a functional purpose in production.
 # This therefore makes it optional for anyone to create a Go module for the plugin.
