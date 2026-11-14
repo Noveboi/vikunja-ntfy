@@ -215,3 +215,112 @@ func TestNtfyRequestConstruction(t *testing.T) {
 		}
 	})
 }
+
+// Tests for the [humanize] function
+func TestDateHumanization(t *testing.T) {
+	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
+
+	cases := []struct{
+		duration time.Duration
+		want string
+	}{
+		{1 * time.Minute, "1 minute"},
+		{1 * time.Minute, "1 minute"},
+		{5 * time.Minute, "5 minutes"},
+		{59 * time.Minute, "59 minutes"},
+		{1 * time.Hour, "1 hour"},
+		{60 * time.Minute, "1 hour"},
+		{5 * time.Hour, "5 hours"},
+		{23 * time.Hour, "23 hours"},
+		{24 * time.Hour, "1 day"},
+		{2 * 24 * time.Hour, "2 days"},
+		{7 * 24 * time.Hour, "1 week"},
+		{31 * 24 * time.Hour, "1 month"},
+		{2 * 31 * 24 * time.Hour, "2 months"},
+		{18 * 31 * 24 * time.Hour, "18 months"}, // don't use 'year'
+
+		// rounding
+		{89 * time.Second, "1 minute"}, // <1.5 minutes
+		{90 * time.Second, "2 minutes"}, // =1.5 minutes
+		{91 * time.Second, "2 minutes"}, // >1.5 minutes
+
+		// negative
+		{-1 * time.Minute, "1 minute"},
+		{-10 * time.Minute, "10 minutes"},
+		{-1 * time.Hour, "1 hour"},
+		{-10 * time.Hour, "10 hours"},
+		{-24 * time.Hour, "1 day"},
+		{5 * -24 * time.Hour, "5 days"},
+
+		// seconds
+		{20 * time.Second, "less than 1 minute"},
+		{59 * time.Second, "less than 1 minute"},
+
+		// calculated durations
+		{now.Sub(now.Add(-1 * time.Minute)), "1 minute"},
+		{now.Sub(now.Add(-10 * time.Minute)), "10 minutes"},
+		{now.Sub(now.Add(-4 * time.Hour)), "4 hours"},
+		{now.Sub(now.Add(4 * time.Hour)), "4 hours"},
+		{now.Sub(now.Add(-3 * 24 * time.Hour)), "3 days"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.duration.String(), func(t *testing.T) {
+			got := humanize(c.duration)
+
+			if got != c.want {
+				t.Errorf("expected %q, got %q", c.want, got)
+			}
+		})
+	}
+}
+
+// Tests for the content of the Reminder message
+func TestReminderContent(t *testing.T) {
+	now := time.Date(2026, 11, 14, 12, 0, 0, 0, time.UTC)
+
+	// Note: here I don't flood with test cases that examine various due dates,
+	// because the date humanization (e.g: duration -> 1 minute) is tested ]
+	// separately
+	cases := []struct{
+		name string
+		task *models.Task
+		want string
+	}{
+		{
+			name: "only task title",
+			task: &models.Task{Title: "testing!"},
+			want: "testing!",
+		},
+		{
+			name: "task title with due date duration in minutes (singular)",
+			task: &models.Task{Title: "test", DueDate: now.Add(1 * time.Minute)},
+			want: "'test' due in 1 minute",
+		},
+		{
+			name: "task title with due date duration in days (singular)",
+			task: &models.Task{Title: "test", DueDate: now.Add(28 * time.Hour)},
+			want: "'test' due in 1 day",
+		},
+		{
+			name: "task title with due date duration in days (plural)",
+			task: &models.Task{Title: "test", DueDate: now.Add(55 * time.Hour)},
+			want: "'test' due in 2 days",
+		},
+		{
+			name: "task title with due date duration in weeks (singular)",
+			task: &models.Task{Title: "test", DueDate: now.Add(9 * 24 * time.Hour)},
+			want: "'test' due in 1 week",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := getReminder(c.task, &now)
+
+			if got != c.want {
+				t.Errorf("expected %q, got %q", c.want, got)
+			}
+		})
+	}
+}

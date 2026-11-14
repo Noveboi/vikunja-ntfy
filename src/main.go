@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http" // for ntfy.sh API calls
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -126,9 +127,12 @@ func (l *TaskReminderListener) Handle(msg *message.Message) error {
 
 	log.Debugf("Processing reminder for u:%d", event.User.ID)
 
+	now := time.Now()
+	reminderContent := getReminder(event.Task, &now)
+
 	ntfyMsg := NtfyMessage{
 		title: "Reminder",
-		content: event.Task.Title,
+		content: reminderContent,
 		priority: NtfyPriorityDefault,
 		tags: []string{"bulb"},
 	}
@@ -322,4 +326,62 @@ func tryRegisterListener(event NamedEvent, listener events.Listener) {
 
 	events.RegisterListener(event.Name(), listener)
 	log.Debugf("[ntfy-plugin] Listener %s registered", listener.Name())
+}
+
+// Get a verbal and informative description of task to-be-reminded-of.
+func getReminder(t *models.Task, now *time.Time) string {
+	zeroTime := time.Time{}
+
+	if t.DueDate == zeroTime {
+		return t.Title
+	}
+
+	duration := humanize(now.Sub(t.DueDate))
+
+	return "'" + t.Title + "'" + " due in " + duration
+}
+
+// Auxiliary function that joins the given `unit` and `noun` into one string.
+//
+// For formatting, it rounds the `unit` to the nearest integer and naively sets the
+// singular/plural of the `noun`.
+//
+// The "naivity" is due to the function only appending 's' if appropriate, and not
+// actually being context-aware. This is fine for its intended use case however!
+func roundStr(unit float64, singularNoun string) string {
+	rUnit := int(math.Round(unit))
+
+	noun := singularNoun
+	if rUnit > 1 {
+		noun = noun + "s"
+	}
+
+	return strconv.Itoa(rUnit) + " " + noun
+}
+
+// Return the provided duration in a human-readable format.
+//
+// Example: Given the duration `8 * [time.Minute]`, the function will return "8 minutes"
+func humanize(d time.Duration) string {
+	d = d.Abs()
+	mins := d.Minutes()
+	hours := d.Hours()
+
+	const oneWeek = 7*24
+	const oneMonth = 31*24
+
+	switch {
+	case mins >= 1 && hours < 1:
+		return roundStr(mins, "minute")
+	case hours >= 1 && hours < 24:
+		return roundStr(hours, "hour")
+	case hours >= 24 && hours < oneWeek:
+		return roundStr(hours / 24, "day")
+	case hours >= oneWeek && hours < oneMonth:
+		return roundStr(hours / oneWeek, "week")
+	case hours >= oneMonth:
+		return roundStr(hours / oneMonth, "month")
+	default:
+		return "less than 1 minute"
+	}
 }
