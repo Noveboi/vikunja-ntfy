@@ -73,7 +73,7 @@ func (p *NtfyPlugin) Name() string {
 }
 
 func (p *NtfyPlugin) Version() string {
-	return "1.3.0"
+	return "1.3.1"
 }
 
 func (p *NtfyPlugin) Init() error {
