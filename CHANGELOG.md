@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2026-11-16
+
+### Changed
+
+- Message content of the **reminder** notification no longer says "'X' due in less than 1 minute" when task's due date very close.
+- Message contnet of the **reminder** notification no longer says task is due when due date has passed
+
 ## [1.3.1] - 2026-11-14
 
 ### Changed
