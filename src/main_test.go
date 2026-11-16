@@ -293,6 +293,21 @@ func TestReminderContent(t *testing.T) {
 			want: "testing!",
 		},
 		{
+			name: "task title without due date if due date close",
+			task: &models.Task{Title: "test", DueDate: now.Add(59 * time.Second)},
+			want: "test",
+		},
+		{
+			name: "task title without due date if at time of due date",
+			task: &models.Task{Title: "test", DueDate: now},
+			want: "test",
+		},
+		{
+			name: "task title without due date if due date passed",
+			task: &models.Task{Title: "test", DueDate: now.Add(-5 * time.Minute)},
+			want: "test",
+		},
+		{
 			name: "task title with due date duration in minutes (singular)",
 			task: &models.Task{Title: "test", DueDate: now.Add(1 * time.Minute)},
 			want: "'test' due in 1 minute",

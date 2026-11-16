@@ -49,10 +49,17 @@ const (
 
 // The structure of a ntfy.sh message
 type NtfyMessage struct {
+	// The header of the notification
 	title string
+
+	// The description of the notification, can be empty
 	content string
+
+	// How important the notification is
 	priority NtfyPriority
-	tags []string // https://docs.ntfy.sh/emojis/
+
+	// One or more of ntfy's tags: https://docs.ntfy.sh/emojis/
+	tags []string
 }
 
 // Event listener for Vikunja's [models.TasksOverdueEvent]
@@ -336,7 +343,12 @@ func getReminder(t *models.Task, now *time.Time) string {
 		return t.Title
 	}
 
-	duration := humanize(now.Sub(t.DueDate))
+	dueRemaining := now.Sub(t.DueDate)
+	if dueRemaining.Seconds() < 60 {
+		return t.Title
+	}
+
+	duration := humanize(dueRemaining)
 
 	return "'" + t.Title + "'" + " due in " + duration
 }
