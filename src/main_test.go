@@ -331,7 +331,7 @@ func TestReminderContent(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			got := getReminder(c.task, &now)
+			got := getReminder(c.task, now)
 
 			if got != c.want {
 				t.Errorf("expected %q, got %q", c.want, got)

@@ -134,8 +134,7 @@ func (l *TaskReminderListener) Handle(msg *message.Message) error {
 
 	log.Debugf("Processing reminder for u:%d", event.User.ID)
 
-	now := time.Now()
-	reminderContent := getReminder(event.Task, &now)
+	reminderContent := getReminder(event.Task, time.Now())
 
 	ntfyMsg := NtfyMessage{
 		title: "Reminder",
@@ -336,14 +335,14 @@ func tryRegisterListener(event NamedEvent, listener events.Listener) {
 }
 
 // Get a verbal and informative description of task to-be-reminded-of.
-func getReminder(t *models.Task, now *time.Time) string {
+func getReminder(t *models.Task, now time.Time) string {
 	zeroTime := time.Time{}
 
 	if t.DueDate == zeroTime {
 		return t.Title
 	}
 
-	dueRemaining := now.Sub(t.DueDate)
+	dueRemaining := t.DueDate.Sub(now)
 	if dueRemaining.Seconds() < 60 {
 		return t.Title
 	}
