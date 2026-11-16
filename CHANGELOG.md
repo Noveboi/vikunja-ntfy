@@ -4,20 +4,20 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.2] - 2026-11-16
+## [1.3.2](https://github.com/Noveboi/vikunja-ntfy/releases/tag/v1.3.2) - 2026-11-16
 
 ### Changed
 
 - Message content of the **reminder** notification no longer says "'X' due in less than 1 minute" when task's due date very close.
 - Message contnet of the **reminder** notification no longer says task is due when due date has passed
 
-## [1.3.1] - 2026-11-14
+## [1.3.1](https://github.com/Noveboi/vikunja-ntfy/releases/tag/v1.3.1) - 2026-11-14
 
 ### Changed
 
 - Message content of the **reminder** notifications is now more informative, informing the user of when the task is due (if it has a due date) 
 
-## [1.3.0] - 2026-10-22
+## [1.3.0](https://github.com/Noveboi/vikunja-ntfy/releases/tag/v1.3.0) - 2026-10-22
 
 ### Added
 - **Feature**: Event listener and notification publishing for task reminders
@@ -25,7 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 ### Refactoring
 - Rename `getMessageContent` to `getOverdueMessageContent` to differntiate from message content of other events
 
-## [1.2.0] - 2026-10-21
+## [1.2.0](https://github.com/Noveboi/vikunja-ntfy/releases/tag/v1.2.0) - 2026-10-21
 
 ### Added
 
@@ -44,7 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 
 - Many new pure functions have been added to separate responsibilities and increase testability
 
-## [1.1.0] - 2026-10-20
+## [1.1.0](https://github.com/Noveboi/vikunja-ntfy/releases/tag/v1.1.0) - 2026-10-20
 
 ### Added
 
@@ -55,7 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/2.0.0/),
 - Notification message content. For 1 overdue task, the message now contains that task's title in full. For more than 1 overdue tasks, the message stays "You have X overdue tasks"
 - [`compose.yaml`](compose.yaml) bind mount for the plugin directory to include only the `main.go` file (and not include the `main_test.go` file) 
 
-## [1.0.0] - 2026-10-20
+## [1.0.0](https://github.com/Noveboi/vikunja-ntfy/releases/tag/v1.0.0) - 2026-10-20
 
 1.0.0 is the initial release for this plugin (🥳🥳). A barebones implementation that works. The plugin at this version only listens for the [TasksOverdueEvent](https://github.com/go-vikunja/vikunja/blob/2eb21632d3fd4cc54f80a51e0e20f0a9a45c0035/pkg/models/events.go#L215) and performs actions to ultimately publish a message to a ntfy.sh topic. Minimal configuration exists for the user to customize the ntfy URL, Topic and logging visibility.
 
