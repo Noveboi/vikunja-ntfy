@@ -24,10 +24,10 @@ services:
     ports:
       - 3456:3456
     volumes:
-      - /etc/localtime:/etc/localtime:ro # for locally accurate log timestamps
-      - ./src/main.go:/plugins/ntfy/main.go:ro
-      - ./_vikunja_data/files:/app/vikunja/files
-      - ./_vikunja_data/db:/db
+      - /etc/localtime:/etc/localtime:ro          # for locally accurate log timestamps
+      - ./src/main.go:/plugins/ntfy/main.go:ro    # the source code of the plugin
+      - ./_vikunja_data/files:/app/vikunja/files  # persist Vikunja's file storage
+      - ./_vikunja_data/db:/db                    # persist Vikunja's database
 
   ntfy-tester:
     image: binwiederhier/ntfy:v2.32.0

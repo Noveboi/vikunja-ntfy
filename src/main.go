@@ -80,7 +80,7 @@ func (p *NtfyPlugin) Name() string {
 }
 
 func (p *NtfyPlugin) Version() string {
-	return "1.3.1"
+	return "1.3.2"
 }
 
 func (p *NtfyPlugin) Init() error {
@@ -121,14 +121,13 @@ func NewPlugin() plugins.Plugin { return singleton }
 // Listener: Reminders
 func (l *TaskReminderListener) Name() string { return "TaskReminderListener" }
 func (l *TaskReminderListener) Handle(msg *message.Message) error {
-	var event models.TaskReminderFiredEvent
-
-	if err := json.Unmarshal(msg.Payload, &event); err != nil {
+	c, err := getConfig()
+	if err != nil {
 		return err
 	}
 
-	c, err := getConfig()
-	if err != nil {
+	var event models.TaskReminderFiredEvent
+	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		return err
 	}
 
@@ -149,14 +148,13 @@ func (l *TaskReminderListener) Handle(msg *message.Message) error {
 // Listener: Overdue Tasks
 func (l *TasksOverdueListener) Name() string { return "TasksOverdueListener" }
 func (l *TasksOverdueListener) Handle(msg *message.Message) error {
-	var event models.TasksOverdueEvent
-
-	if err := json.Unmarshal(msg.Payload, &event); err != nil {
+	c, err := getConfig()
+	if err != nil {
 		return err
 	}
 
-	c, err := getConfig()
-	if err != nil {
+	var event models.TasksOverdueEvent
+	if err := json.Unmarshal(msg.Payload, &event); err != nil {
 		return err
 	}
 
